@@ -13,7 +13,8 @@ void DepthControl::init(const int totalWayPoints_in, double * wayPoints_in, int 
   wayPoints = new double[totalWayPoints];
   for (int i=0; i<totalWayPoints; i++) {
     wayPoints[i] = wayPoints_in[i];
-  }
+  }  
+
   diveDelay = diveDelay_in;
 }
 
@@ -30,6 +31,14 @@ void DepthControl::dive(z_state_t * state, int currentTime_in) {
   //////////////////////////////////////////////////////////////////////
   // write code here
   //////////////////////////////////////////////////////////////////////
+
+  depth_des = wayPoints[currentWayPoint];
+  depth = state ->z; 
+  kp = 80;
+  uV = k * (depth_des - depth); 
+  if(uV <= -200){uV = -200};
+  else if(uV >= 200){uV = 200};
+  
   
   ///////////////////////////////////////////////////////////////////////
   // don't change code past this point
