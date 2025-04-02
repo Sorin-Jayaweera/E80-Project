@@ -15,11 +15,14 @@ void ZStateEstimator::updateState(int pressure_signal) {
   // get z (depth)
   float pressure_voltage = (double)pressure_signal;
   pressure_voltage *= (3.3/1023);  // convert from Teensy units to Volts
-  state.z = depthCal_slope * pressure_voltage + depthCal_intercept; // convert from Volts to depth [m]
+  float depthCal_slope = -0.941;//-1.23;//-1.61;
+  float depthCal_intercept = 3.1;//3.69;//-3.15;
+  //state.z = depthCal_slope * pressure_voltage + depthCal_intercept; // convert from Volts to depth [m]
+  state.z = depthCal_slope *  pressure_voltage + depthCal_intercept; // convert from Volts to depth [m]
 
   // uncomment the following print statement to calibrate your pressure sensor with the Teensy using the Serial Monitor
-  //String calibrationMessage = "Pressure Sensor Voltage: " + String(pressure_voltage);
-  //printer.printMessage(calibrationMessage,20);
+  String calibrationMessage = "Pressure Sensor Voltage: " + String(pressure_voltage);
+  printer.printMessage(calibrationMessage,20);
 }
 
 String ZStateEstimator::printState(void) {
