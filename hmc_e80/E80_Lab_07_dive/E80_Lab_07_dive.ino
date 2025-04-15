@@ -8,6 +8,16 @@ Authors:
     Apoorva Sharma (asharma@hmc.edu) '17 (contributed in 2016)                    
 */
 
+//#include "GravityTDS.h"
+
+#define pressurePin 14 //A0
+#define turbidityPin 15 // A1
+#define phPin 16 // A2
+#define temperaturePin 17 //A3
+#define salinityPin A10 //A10
+
+
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <avr/io.h>
@@ -76,8 +86,8 @@ void setup() {
 
   int diveDelay = 3000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 8;
-  double depth_waypoints [] = { 0.5, 1,0.5,0,0.5,1,0.5,0 };  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 5;
+  double depth_waypoints [] = {0.2,0.4,0.6,0.8,1 };  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
@@ -95,6 +105,14 @@ void setup() {
   depth_control.lastExecutionTime      = loopStartTime - LOOP_PERIOD + DEPTH_CONTROL_LOOP_OFFSET;
   logger.lastExecutionTime             = loopStartTime - LOOP_PERIOD + LOGGER_LOOP_OFFSET;
 
+
+
+
+  pinMode(pressurePin,INPUT);
+  pinMode(turbidityPin,INPUT);
+  pinMode(phPin,INPUT);
+  pinMode(temperaturePin,INPUT);
+  pinMode(salinityPin,INPUT);
 }
 
 
@@ -103,23 +121,36 @@ void setup() {
 
 void loop() {
   currentTime=millis();
-    
-  if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
-    printer.lastExecutionTime = currentTime;
-    printer.printValue(0,adc.printSample());
-    //printer.printValue(1,ef.printStates());
-    printer.printValue(1,button_sampler.printState());
-    printer.printValue(2,logger.printState());
-    printer.printValue(3,gps.printState());   
-    printer.printValue(4,xy_state_estimator.printState());  
-    printer.printValue(5,z_state_estimator.printState());  
-    printer.printValue(6,depth_control.printWaypointUpdate());
-    printer.printValue(7,depth_control.printString());
-    printer.printValue(8,motor_driver.printState());
-    printer.printValue(9,imu.printRollPitchHeading());        
-    printer.printValue(10,imu.printAccels());
-    printer.printToSerial();  // To stop printing, just comment this line out
-  }
+  //float bittvolt = 3.3/1023;
+  Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
+  double turbidityVoltage = analogRead(turbidityPin);
+  double phVoltage = analogRead(phPin);
+  double depthVoltage = analogRead(pressurePin);
+  double temperatureVoltage = analogRead(temperaturePin);
+  double tdsVoltage = analogRead(salinityPin);
+
+  Serial.print(depthVoltage); Serial.print(",");
+  Serial.print(turbidityVoltage); Serial.print(",");
+  Serial.print(phVoltage); Serial.print(",");
+  Serial.print(temperatureVoltage); Serial.print(",");
+  Serial.print(tdsVoltage); Serial.println();
+  
+  // if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
+  //   printer.lastExecutionTime = currentTime;
+  //   printer.printValue(0,adc.printSample());
+  //   //printer.printValue(1,ef.printStates());
+  //   printer.printValue(1,button_sampler.printState());
+  //   printer.printValue(2,logger.printState());
+  //   printer.printValue(3,gps.printState());   
+  //   printer.printValue(4,xy_state_estimator.printState());  
+  //   printer.printValue(5,z_state_estimator.printState());  
+  //   printer.printValue(6,depth_control.printWaypointUpdate());
+  //   printer.printValue(7,depth_control.printString());
+  //   printer.printValue(8,motor_driver.printState());
+  //   printer.printValue(9,imu.printRollPitchHeading());        
+  //   printer.printValue(10,imu.printAccels());
+  //   printer.printToSerial();  // To stop printing, just comment this line out
+  // }
 
   /* ROBOT CONTROL Finite State Machine */
   if ( currentTime-depth_control.lastExecutionTime > LOOP_PERIOD ) {
