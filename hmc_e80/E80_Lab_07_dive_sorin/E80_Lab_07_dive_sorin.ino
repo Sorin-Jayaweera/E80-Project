@@ -9,13 +9,14 @@ Authors:
 */
 
 //#include "GravityTDS.h"
+#include <SPI.h>
+#include <SD.h>
 
 #define pressurePin 14 //A0
 #define turbidityPin 15 // A1
 #define phPin 16 // A2
 #define temperaturePin 17 //A3
 #define salinityPin A10 //A10
-
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -83,10 +84,10 @@ void setup() {
   motor_driver.init();
   led.init();
 
-  int diveDelay = 3000; // how long robot will stay at depth waypoint before continuing (ms)
+  int diveDelay = 5000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 5;
-  double depth_waypoints [] = {0.2,0.4,0.6,0.8,1 };  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 8;
+  double depth_waypoints [] = {0.2,0.4,0.6,0.8,1,1.2,1.4,1.8,0 };  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
@@ -109,6 +110,24 @@ void setup() {
   pinMode(phPin,INPUT);
   pinMode(temperaturePin,INPUT);
   pinMode(salinityPin,INPUT);
+
+  Serial.print("Initializing SD card...");
+
+
+  //TODO: What is the CS pin for SD?
+ while (!SD.begin(10)) { //CS = 10
+   Serial.println("SD initialization failed!");
+ }
+ Serial.println("initialization done.");
+ 
+  File file = SD.open("log1.csv",FILE_WRITE);
+  file.println("Pressure, Turbidity, PH, Temperature, Salinity");
+  file.close();
+  Serial.println();
+  Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
+  
+  //delay(400000);
+  Serial.println("Delay done");
 }
 
 
@@ -117,35 +136,45 @@ void setup() {
 
 void loop() {
   currentTime=millis();
-  //float bittvolt = 3.3/1023;
-  Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
-  double turbidityVoltage = analogRead(turbidityPin);
-  double phVoltage = analogRead(phPin);
-  double depthVoltage = analogRead(pressurePin);
-  double temperatureVoltage = analogRead(temperaturePin);
-  double tdsVoltage = analogRead(salinityPin);
+  float bittovolt = 3.3/1023;
+  
+  float turbidityVoltage = analogRead(turbidityPin) * bittovolt;
+  float phVoltage = analogRead(phPin)* bittovolt;
+  float depthVoltage = analogRead(pressurePin)* bittovolt;
+  float temperatureVoltage = analogRead(temperaturePin)* bittovolt;
+  float tdsVoltage = analogRead(salinityPin)* bittovolt;
 
   Serial.print(depthVoltage); Serial.print(",");
   Serial.print(turbidityVoltage); Serial.print(",");
   Serial.print(phVoltage); Serial.print(",");
   Serial.print(temperatureVoltage); Serial.print(",");
-  Serial.print(tdsVoltage); Serial.println();
+  Serial.print(tdsVoltage); Serial.print(",");
+  Serial.println(millis()); Serial.println();
+
+   File file = SD.open("log1.csv",FILE_WRITE);
+   file.print(depthVoltage); file.print(",");
+   file.print(turbidityVoltage); file.print(",");
+   file.print(phVoltage); file.print(",");
+   file.print(temperatureVoltage); file.print(",");
+   file.print(tdsVoltage); file.print(",");
+   file.print(millis());file.println();
+   file.close();
   
-  // if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
-  //   printer.lastExecutionTime = currentTime;
-  //   printer.printValue(0,adc.printSample());
-  //   //printer.printValue(1,ef.printStates());
-  //   printer.printValue(1,button_sampler.printState());
-  //   printer.printValue(2,logger.printState());
-  //   printer.printValue(3,gps.printState());   
-  //   printer.printValue(4,xy_state_estimator.printState());  
-  //   printer.printValue(5,z_state_estimator.printState());  
-  //   printer.printValue(6,depth_control.printWaypointUpdate());
-  //   printer.printValue(7,depth_control.printString());
-  //   printer.printValue(8,motor_driver.printState());
-  //   printer.printValue(9,imu.printRollPitchHeading());        
-  //   printer.printValue(10,imu.printAccels());
-  //   printer.printToSerial();  // To stop printing, just comment this line out
+  //  if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
+  //    printer.lastExecutionTime = currentTime;
+  //    printer.printValue(0,adc.printSample());
+  //    //printer.printValue(1,ef.printStates());
+  //    printer.printValue(1,button_sampler.printState());
+  //    printer.printValue(2,logger.printState());
+  //    printer.printValue(3,gps.printState());   
+  //    printer.printValue(4,xy_state_estimator.printState());  
+  //    printer.printValue(5,z_state_estimator.printState());  
+  //    printer.printValue(6,depth_control.printWaypointUpdate());
+  //    printer.printValue(7,depth_control.printString());
+  //    printer.printValue(8,motor_driver.printState());
+  //    printer.printValue(9,imu.printRollPitchHeading());        
+  //    printer.printValue(10,imu.printAccels());
+  //    printer.printToSerial();  // To stop printing, just comment this line out
   // }
 
   /* ROBOT CONTROL Finite State Machine */
@@ -160,7 +189,8 @@ void loop() {
         depth_control.diveState = false; 
         depth_control.surfaceState = true;
       }
-      motor_driver.drive(0,0,depth_control.uV);
+      motor_driver.drive(depth_control.uV,depth_control.uV,depth_control.uV);
+  
     }
     if ( depth_control.surfaceState ) {     // SURFACE STATE //
       if ( !depth_control.atSurface ) { 
@@ -169,7 +199,7 @@ void loop() {
       else if ( depth_control.complete ) { 
         delete[] depth_control.wayPoints;   // destroy depth waypoint array from the Heap
       }
-      motor_driver.drive(0,0,depth_control.uV);
+      motor_driver.drive(depth_control.uV,depth_control.uV,depth_control.uV);
     }
   }
   
