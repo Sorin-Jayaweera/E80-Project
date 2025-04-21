@@ -15,8 +15,8 @@ void ZStateEstimator::updateState(int pressure_signal) {
   // get z (depth)
   float pressure_voltage = (double)pressure_signal;
   pressure_voltage *= (3.3/1023);  // convert from Teensy units to Volts
-  float depthCal_slope = -0.941;//-1.23;//-1.61;
-  float depthCal_intercept = 3.1;//3.69;//-3.15;
+  float depthCal_slope = -0.956;//-0.941;//-1.23;//-1.61;
+  float depthCal_intercept = 3.03;//3.1;//3.69;//-3.15;
   //state.z = depthCal_slope * pressure_voltage + depthCal_intercept; // convert from Volts to depth [m]
   state.z = depthCal_slope *  pressure_voltage + depthCal_intercept; // convert from Volts to depth [m]
 
