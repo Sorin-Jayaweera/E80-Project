@@ -39,6 +39,12 @@ Authors:
 #define UartSerial Serial1
 #include <GPSLockLED.h>
 
+#include <EEPROM.h>
+int filenum;
+int filenumAddress = 15; //for EEPROM, 15 is a random value, I don't want it to interfere with whatever EEPROM stuff the automatic code does
+char namebuffer[10];
+bool resetFileCounter = false; //TODO: Make True whenever we take out all data and restart the count. This is once a day maybe.
+
 /////////////////////////* Global Variables *////////////////////////
 
 MotorDriver motor_driver;
@@ -63,7 +69,15 @@ volatile bool EF_States[NUM_FLAGS] = {1,1,1};
 ////////////////////////* Setup *////////////////////////////////
 
 void setup() {
-  
+  if(resetFileCounter){
+    filenum = 1;
+  }
+  else{
+    int oldFileNum = EEPROM.read(filenumAddress);
+    filenum = oldFileNum + 1;
+  }
+  EEPROM.write(filenumAddress,filenum);
+
   logger.include(&imu);
   logger.include(&gps);
   logger.include(&xy_state_estimator);
@@ -119,14 +133,16 @@ void setup() {
    Serial.println("SD initialization failed!");
  }
  Serial.println("initialization done.");
- 
-  File filelog = SD.open("log1.csv",FILE_WRITE);
+  
+  sprintf(namebuffer,"log%d.csv",filenum);
+  Serial.print("nameBuffer: "); Serial.println(namebuffer);
+  File filelog = SD.open(namebuffer,FILE_WRITE);
   filelog.println("Pressure, Turbidity, PH, Temperature, Salinity");
   filelog.close();
   Serial.println();
   Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
   
-  //delay(400000);
+  delay(5000);
   Serial.println("Delay done");
 }
 
@@ -271,7 +287,7 @@ void loop() {
     // Serial.print(tdsVoltage); Serial.print(",");
     // Serial.println(millis()); Serial.println();
 
-    File filelog = SD.open("log1.csv",FILE_WRITE);
+    File filelog = SD.open(namebuffer,FILE_WRITE);
     filelog.print(depthVoltage); filelog.print(",");
     filelog.print(turbidityVoltage); filelog.print(",");
     filelog.print(phVoltage); filelog.print(",");
