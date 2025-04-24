@@ -84,7 +84,7 @@ void setup() {
   motor_driver.init();
   led.init();
 
-  int diveDelay = 5000; // how long robot will stay at depth waypoint before continuing (ms)
+  int diveDelay = 10000; // how long robot will stay at depth waypoint before continuing (ms)
 
   const int num_depth_waypoints = 8;
   double depth_waypoints [] = {0.2,0.4,0.6,0.8,1,1.2,1.4,1.8,0 };  // listed as z0,z1,... etc.
@@ -120,9 +120,9 @@ void setup() {
  }
  Serial.println("initialization done.");
  
-  File file = SD.open("log1.csv",FILE_WRITE);
-  file.println("Pressure, Turbidity, PH, Temperature, Salinity");
-  file.close();
+  File filelog = SD.open("log1.csv",FILE_WRITE);
+  filelog.println("Pressure, Turbidity, PH, Temperature, Salinity");
+  filelog.close();
   Serial.println();
   Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
   
@@ -137,45 +137,48 @@ void setup() {
 void loop() {
   currentTime=millis();
   float bittovolt = 3.3/1023;
-  
-  float turbidityVoltage = analogRead(turbidityPin) * bittovolt;
-  float phVoltage = analogRead(phPin)* bittovolt;
-  float depthVoltage = analogRead(pressurePin)* bittovolt;
-  float temperatureVoltage = analogRead(temperaturePin)* bittovolt;
-  float tdsVoltage = analogRead(salinityPin)* bittovolt;
 
-  Serial.print(depthVoltage); Serial.print(",");
-  Serial.print(turbidityVoltage); Serial.print(",");
-  Serial.print(phVoltage); Serial.print(",");
-  Serial.print(temperatureVoltage); Serial.print(",");
-  Serial.print(tdsVoltage); Serial.print(",");
-  Serial.println(millis()); Serial.println();
 
-   File file = SD.open("log1.csv",FILE_WRITE);
-   file.print(depthVoltage); file.print(",");
-   file.print(turbidityVoltage); file.print(",");
-   file.print(phVoltage); file.print(",");
-   file.print(temperatureVoltage); file.print(",");
-   file.print(tdsVoltage); file.print(",");
-   file.print(millis());file.println();
-   file.close();
+  // moved to be next to logger.log so that things are synced element wise
   
-  //  if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
-  //    printer.lastExecutionTime = currentTime;
-  //    printer.printValue(0,adc.printSample());
-  //    //printer.printValue(1,ef.printStates());
-  //    printer.printValue(1,button_sampler.printState());
-  //    printer.printValue(2,logger.printState());
-  //    printer.printValue(3,gps.printState());   
-  //    printer.printValue(4,xy_state_estimator.printState());  
-  //    printer.printValue(5,z_state_estimator.printState());  
-  //    printer.printValue(6,depth_control.printWaypointUpdate());
-  //    printer.printValue(7,depth_control.printString());
-  //    printer.printValue(8,motor_driver.printState());
-  //    printer.printValue(9,imu.printRollPitchHeading());        
-  //    printer.printValue(10,imu.printAccels());
-  //    printer.printToSerial();  // To stop printing, just comment this line out
-  // }
+  // float turbidityVoltage = analogRead(turbidityPin) * bittovolt;
+  // float phVoltage = analogRead(phPin)* bittovolt;
+  // float depthVoltage = analogRead(pressurePin)* bittovolt;
+  // float temperatureVoltage = analogRead(temperaturePin)* bittovolt;
+  // float tdsVoltage = analogRead(salinityPin)* bittovolt;
+
+  // Serial.print(depthVoltage); Serial.print(",");
+  // Serial.print(turbidityVoltage); Serial.print(",");
+  // Serial.print(phVoltage); Serial.print(",");
+  // Serial.print(temperatureVoltage); Serial.print(",");
+  // Serial.print(tdsVoltage); Serial.print(",");
+  // Serial.println(millis()); Serial.println();
+
+  //  File file = SD.open("log1.csv",FILE_WRITE);
+  //  file.print(depthVoltage); file.print(",");
+  //  file.print(turbidityVoltage); file.print(",");
+  //  file.print(phVoltage); file.print(",");
+  //  file.print(temperatureVoltage); file.print(",");
+  //  file.print(tdsVoltage); file.print(",");
+  //  file.print(millis());file.println();
+  //  file.close();
+  
+    if ( currentTime-printer.lastExecutionTime > LOOP_PERIOD ) {
+      printer.lastExecutionTime = currentTime;
+      printer.printValue(0,adc.printSample());
+      //printer.printValue(1,ef.printStates());
+      printer.printValue(1,button_sampler.printState());
+      printer.printValue(2,logger.printState());
+      printer.printValue(3,gps.printState());   
+      printer.printValue(4,xy_state_estimator.printState());  
+      printer.printValue(5,z_state_estimator.printState());  
+      printer.printValue(6,depth_control.printWaypointUpdate());
+      printer.printValue(7,depth_control.printString());
+      printer.printValue(8,motor_driver.printState());
+      printer.printValue(9,imu.printRollPitchHeading());        
+      printer.printValue(10,imu.printAccels());
+      printer.printToSerial();  // To stop printing, just comment this line out
+   }
 
   /* ROBOT CONTROL Finite State Machine */
   if ( currentTime-depth_control.lastExecutionTime > LOOP_PERIOD ) {
@@ -253,6 +256,29 @@ void loop() {
   if ( currentTime- logger.lastExecutionTime > LOOP_PERIOD && logger.keepLogging ) {
     logger.lastExecutionTime = currentTime;
     logger.log();
+
+    
+    float turbidityVoltage = analogRead(turbidityPin) * bittovolt;
+    float phVoltage = analogRead(phPin)* bittovolt;
+    float depthVoltage = analogRead(pressurePin)* bittovolt;
+    float temperatureVoltage = analogRead(temperaturePin)* bittovolt;
+    float tdsVoltage = analogRead(salinityPin)* bittovolt;
+
+    // Serial.print(depthVoltage); Serial.print(",");
+    // Serial.print(turbidityVoltage); Serial.print(",");
+    // Serial.print(phVoltage); Serial.print(",");
+    // Serial.print(temperatureVoltage); Serial.print(",");
+    // Serial.print(tdsVoltage); Serial.print(",");
+    // Serial.println(millis()); Serial.println();
+
+    File filelog = SD.open("log1.csv",FILE_WRITE);
+    filelog.print(depthVoltage); filelog.print(",");
+    filelog.print(turbidityVoltage); filelog.print(",");
+    filelog.print(phVoltage); filelog.print(",");
+    filelog.print(temperatureVoltage); filelog.print(",");
+    filelog.print(tdsVoltage); filelog.print(",");
+    filelog.print(millis());filelog.println();
+    filelog.close();
   }
 }
 
