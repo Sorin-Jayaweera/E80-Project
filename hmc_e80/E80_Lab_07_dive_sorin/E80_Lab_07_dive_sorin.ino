@@ -69,14 +69,7 @@ volatile bool EF_States[NUM_FLAGS] = {1,1,1};
 ////////////////////////* Setup *////////////////////////////////
 
 void setup() {
-  if(resetFileCounter){
-    filenum = 1;
-  }
-  else{
-    int oldFileNum = EEPROM.read(filenumAddress);
-    filenum = oldFileNum + 1;
-  }
-  EEPROM.write(filenumAddress,filenum);
+  Serial.begin(9600);
 
   logger.include(&imu);
   logger.include(&gps);
@@ -98,10 +91,11 @@ void setup() {
   motor_driver.init();
   led.init();
 
+  int delayUntilStart = 30000;
   int diveDelay = 10000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 8;
-  double depth_waypoints [] = {0.2,0.4,0.6,0.8,1,1.2,1.4,1.8,0 };  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 5;
+  double depth_waypoints [] = {0,0.5,1,0.5,0};  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
@@ -128,21 +122,27 @@ void setup() {
   Serial.print("Initializing SD card...");
 
 
+  if(resetFileCounter){
+    resetFileCounter = false;
+    filenum = 0;
+  }
+  else{
+    filenum = EEPROM.read(filenumAddress);
+    filenum += 1;
+  }
+  EEPROM.write(filenumAddress,filenum);
+  
   //TODO: What is the CS pin for SD?
  while (!SD.begin(10)) { //CS = 10
    Serial.println("SD initialization failed!");
  }
- Serial.println("initialization done.");
-  
+  Serial.println("initialization done.");
   sprintf(namebuffer,"log%d.csv",filenum);
-  Serial.print("nameBuffer: "); Serial.println(namebuffer);
-  File filelog = SD.open(namebuffer,FILE_WRITE);
-  filelog.println("Pressure, Turbidity, PH, Temperature, Salinity");
-  filelog.close();
-  Serial.println();
-  Serial.print("Pressure, Turbidity, PH, Temperature, Salinity");
+  Serial.print("File nameBuffer: "); Serial.println(namebuffer);
   
-  delay(5000);
+
+
+  delay(delayUntilStart);
   Serial.println("Delay done");
 }
 
@@ -150,10 +150,22 @@ void setup() {
 
 //////////////////////////////* Loop */////////////////////////
 
+bool firstCycle = true;
 void loop() {
   currentTime=millis();
   float bittovolt = 3.3/1023;
 
+  if(firstCycle){
+    firstCycle = false;
+    
+    File filelog = SD.open(namebuffer,FILE_WRITE);
+    filelog.println("Pressure, Turbidity, PH, Temperature, Salinity");
+    filelog.close();
+    Serial.println();
+
+    Serial.print("Pressure, Turbidity, PH, Temperature, Salinity,Time,uV");
+    
+  }
 
   // moved to be next to logger.log so that things are synced element wise
   
@@ -293,7 +305,8 @@ void loop() {
     filelog.print(phVoltage); filelog.print(",");
     filelog.print(temperatureVoltage); filelog.print(",");
     filelog.print(tdsVoltage); filelog.print(",");
-    filelog.print(millis());filelog.println();
+    filelog.print(millis());filelog.print(",");
+    filelog.print(depth_control.uV);filelog.println();
     filelog.close();
   }
 }
