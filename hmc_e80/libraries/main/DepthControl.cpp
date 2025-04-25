@@ -34,16 +34,18 @@ void DepthControl::dive(z_state_t * state, int currentTime_in) {
 
   depth_des = wayPoints[currentWayPoint];
   depth = state ->z; 
-  Kp = -200;
+  Kp = 200;
   uV = Kp * (depth_des - depth); 
+  /*
   
-  if(uV < 2*Kp){
-    uV = 2*Kp;
+  if(uV < Kp){
+    uV = Kp;
   }
   
-  if(uV > -2*Kp){
-    uV = -2*Kp;
+  if(uV > Kp){
+    uV = Kp;
   }
+  */
   
   ///////////////////////////////////////////////////////////////////////
   // don't change code past this point

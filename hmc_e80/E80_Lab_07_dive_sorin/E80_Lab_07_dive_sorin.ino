@@ -92,10 +92,10 @@ void setup() {
   led.init();
 
   int delayUntilStart = 30000;
-  int diveDelay = 10000; // how long robot will stay at depth waypoint before continuing (ms)
+  int diveDelay = 5000; // how long robot will stay at depth waypoint before continuing (ms)
 
-  const int num_depth_waypoints = 5;
-  double depth_waypoints [] = {0,0.5,1,0.5,0};  // listed as z0,z1,... etc.
+  const int num_depth_waypoints = 4;
+  double depth_waypoints [] = {0.5,0.8,0.4,0};  // listed as z0,z1,... etc.
   depth_control.init(num_depth_waypoints, depth_waypoints, diveDelay);
   
   xy_state_estimator.init(); 
