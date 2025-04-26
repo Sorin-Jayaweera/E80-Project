@@ -1,7 +1,7 @@
 #include <EEPROM.h>
 
 int addr = 15; // address of filenum name
-int val = 0; // so that we start filenum from zero
+int val = -1; // so that we start filenum from zero
 
 void setup() {
   // put your setup code here, to run once:

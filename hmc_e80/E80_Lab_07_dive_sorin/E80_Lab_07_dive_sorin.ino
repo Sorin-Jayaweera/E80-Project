@@ -91,7 +91,7 @@ void setup() {
   motor_driver.init();
   led.init();
 
-  int delayUntilStart = 30000;
+  int delayUntilStart = 0;
   int diveDelay = 5000; // how long robot will stay at depth waypoint before continuing (ms)
 
   //const int num_depth_waypoints = 27;
@@ -224,10 +224,11 @@ void loop() {
         depth_control.dive(&z_state_estimator.state, currentTime);
       }
       else {
-        depth_control.diveState = false; 
+        depth_control.diveState = false;  
         depth_control.surfaceState = true;
       }
       motor_driver.drive(depth_control.uV,depth_control.uV,depth_control.uV);
+      //motor_driver.drive(0,0,0);
   
     }
     if ( depth_control.surfaceState ) {     // SURFACE STATE //
@@ -307,13 +308,13 @@ void loop() {
     // Serial.println(millis()); Serial.println();
 
     File filelog = SD.open(namebuffer,FILE_WRITE);
-    filelog.print(depthVoltage); filelog.print(",");
-    filelog.print(turbidityVoltage); filelog.print(",");
-    filelog.print(phVoltage); filelog.print(",");
-    filelog.print(temperatureVoltage); filelog.print(",");
-    filelog.print(tdsVoltage); filelog.print(",");
-    filelog.print(millis());filelog.print(",");
-    filelog.print(depth_control.uV);filelog.println();
+    filelog.print(depthVoltage,4); filelog.print(",");
+    filelog.print(turbidityVoltage,4); filelog.print(",");
+    filelog.print(phVoltage,4); filelog.print(",");
+    filelog.print(temperatureVoltage,4); filelog.print(",");
+    filelog.print(tdsVoltage,4); filelog.print(",");
+    filelog.print(millis(),4);filelog.print(",");
+    filelog.print(depth_control.uV,4);filelog.println();
     filelog.close();
   }
 }
