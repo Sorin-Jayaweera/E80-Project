@@ -1,0 +1,9 @@
+inf0 .bin
+log0.
+
+log1.csv
+
+
+at side prier unofficially
+
+We held the robot above water for about 45 seconds (motors turned on), then i tossed it into the water beyond the peir. It appeared to hold at the first depth for 10 seconds properly, then descended and kept going down. We had to pull up after waiting for a while.
