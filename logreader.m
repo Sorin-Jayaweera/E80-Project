@@ -122,21 +122,23 @@ latlonTests = [pierOfficial;pierOfficial;stop1;stop2;stop3];
 
 
 filenames = ["log2.csv","log6.csv","log12.csv","log10.csv","log14.csv"];
-filepath = ["danapoint/pier2/","danapoint/pier2_deeper/","danapoint/bigkayaktrip1/","danapoint/bigkayaktrip1/","danapoint/bigkayaktrip1/"];
+filepath = "E80-Project/danapoint/"+["pier2/","pier2_deeper/","bigkayaktrip1/","bigkayaktrip1/","bigkayaktrip1/"];
 siteNames = ["private pier", "public pier", "kayak 1", "kayak 2", "kayak 3"];
 diveNames = ["pier", "pier deep", "kayak 2","kayak 1",  "kayak 3"];
 
-%%
+
 %[ewrelpos,nsrelpos] = latlon2local(latlonSites(:,1), latlonSites(:,2),0.*latlonSites(:,1), [latlonSites(1,1), latlonSites(1,2),0]);
-[ewrelpos,nsrelpos] = gps2xyref(latlonSites(:,1), latlonSites(:,2), latlonSites(1,1), latlonSites(1,2));
-%%
-dist = sqrt(ewrelpos.^2 + nsrelpos.^2)';
-dist(1) = 0; % private pier
+[ewrelposSites,nsrelposSites] = gps2xyref(latlonSites(:,1), latlonSites(:,2), latlonSites(1,1), latlonSites(1,2));
+[ewrelposTests,nsrelposTests] = gps2xyref(latlonTests(:,1), latlonTests(:,2), latlonTests(1,1), latlonTests(1,2));
+
+distSites = sqrt(ewrelposSites.^2 + nsrelposSites.^2)';
+dist = sqrt(ewrelposTests.^2 + nsrelposTests.^2)';
+dist(1) = 0.2; % private pier
 dist(2) = 0; % public pier
 diststr = strings(1,length(siteNames));
 
 for i = 1:length(siteNames)
-   diststr(i) = sprintf("%s: %.1f", siteNames(i),dist(i));
+   diststr(i) = sprintf("%s: %.1f", siteNames(i),distSites(i));
 end
 
 %%
@@ -162,6 +164,7 @@ tempArr = zeros(length(filenames),maxLen);
 salinityArr = zeros(length(filenames),maxLen);
 turbArr = zeros(length(filenames),maxLen);
 phArr = zeros(length(filenames),maxLen);
+timeArr = zeros(length(filenames),maxLen);
 
 tempRawArr = zeros(length(filenames),maxLen);
 
@@ -182,15 +185,26 @@ for i = 1:1:length(filenames)
     turbidity = -376*turbraw+1111;
     salinity = 2.02e-4*exp(2.08*salinityraw);
     temperature = -7.81*temperatureraw+25.7;%-9.27*temperatureraw+26.5;
+    
 
     depthArr(i,:) = depthArr(i,:) + padarray(depth',[0,maxLen-length(depth)],'post'); 
     tempArr(i,:) = tempArr(i,:) + padarray(temperature',[0,maxLen-length(temperature)],'post');
     salinityArr(i,:) = salinityArr(i,:) + padarray(salinity',[0,maxLen-length(salinity)],'post');
     turbArr(i,:) = turbArr(i,:) + padarray(turbidity',[0,maxLen-length(turbidity)],'post');
     phArr(i,:)= phArr(i,:) + padarray(ph',[0,maxLen-length(ph)],'post');
-
+    
+    timeArr(i,:)= timeArr(i,:) + padarray(time',[0,maxLen-length(time)],'post');
+    
     tempRawArr(i,:)= tempRawArr(i,:) + padarray(temperatureraw',[0,maxLen-length(temperatureraw)],'post');
 end
+%%
+figure;
+plot(timeArr'/1000,depthArr')
+xlabel("Time [S]")
+ylabel("Depth [m]")
+legend(diveNames)
+title("Diving Path")
+
 %%
 figure;
 plot(tempArr')
@@ -206,10 +220,10 @@ xlabel("Time [samples]")
 ylabel("Voltage [V]")
 %%
 
-figure;
+figure("color","white");
 tiledlayout(2,2)
 nexttile
-plot(depthArr'); title("Depths Achieved"); legend(diveNames); ylabel("Depth [m]"); xlabel("Time [samples]"); 
+plot(timeArr'./1000,depthArr'); title("Depths Achieved"); legend(diveNames); ylabel("Depth [m]"); xlabel("Time [S]"); 
 nexttile
 
 plot(depthArr',turbArr'); title("Turbidity vs Depth"); xlabel("Depth [m]"); ylabel("Turbidity [NTU]"); xlim([0,max(max(depthArr))]) %legend(diveNames);
@@ -226,19 +240,29 @@ plot(depthArr',phArr'); title("PH vs depth for each dive"); legend(diveNames);xl
 
 close all
 clc
-
-%HERE
-% Now I want to explore the distance from shore with the trends.
+%% Now I want to explore the distance from shore with the trends.
+%fist lets calculate the buckets for each depth and distance from shore in
+%a nice way. Average temperature for a tiny sliver at each depth. This will
+%have some not niceness close to the surface due to sensor settling times,
+%but should be mostly nice. 
+% Depth bucket , Dive number(in order of distance from shore) > 
+%    V
 depthExplorationArr = 0:0.1:2;
-plotDepthBuckets(tempArr,depthArr,dist,depthExplorationArr,length(filenames),"Temperature", "c")
-%%
-plotDepthBuckets(turbArr,depthArr,dist,depthExplorationArr,length(filenames),"Turbidity", "NTU")
-%%
-plotDepthBuckets(salinityArr,depthArr,dist,depthExplorationArr,length(filenames),"Salinity", "PPM")
+numDives = length(filenames);
 
-%%
-plotDepthBuckets(phArr,depthArr,dist,depthExplorationArr,length(filenames),"PH", "PH")
-%%
+% down is depth bucket, across is the dive number. 
+[tempDepthBucket,avgTmpBucket] = getDepthBuckets(tempArr,depthArr,depthExplorationArr,numDives);
+plotDepthBuckets(tempDepthBucket,avgTmpBucket,depthExplorationArr,dist,numDives,"Temperature", "C")
+
+[turbDepthBucket,avgTurbBucket] = getDepthBuckets(turbArr,depthArr,depthExplorationArr,numDives);
+plotDepthBuckets(turbDepthBucket,avgTurbBucket,depthExplorationArr,dist,numDives,"Turbidity", "NTU")
+
+[salnDepthBucket,avgSalnBucket] = getDepthBuckets(salinityArr,depthArr,depthExplorationArr,numDives);
+plotDepthBuckets(salnDepthBucket,avgSalnBucket,depthExplorationArr,dist,numDives,"Salinity", "PPM")
+
+[phDepthBucket,phSalnBucket] = getDepthBuckets(phArr,depthArr,depthExplorationArr,numDives);
+plotDepthBuckets(phDepthBucket,phSalnBucket,depthExplorationArr,dist,numDives,"PH", "")
+%% Now I want to fit a curve to the data vs distance from structures
 
 
 
@@ -279,31 +303,6 @@ for i = 1:length(filenames)
 
 end
 
-%%
-figure;
-plot(depth);
-hold on;
-plot(depth_des);
-title("Depth vs Desired Depth")
-xlabel("Time [Samples]")
-ylabel("Depth [M]")
-%%
-figure; 
-plot(depth_des-depth, uV);
-title("Distance from desired vs Control Strength")
-xlabel("Difference in depth [cm]")
-ylabel("Control Effort")
-
-
-figure; 
-yyaxis left
-plot(depth_des-depth);
-yyaxis right;
-plot(uV)
-title("Distance from desired vs Control Strength")
-xlabel("Difference in depth [cm]")
-ylabel("Control Effort")
-
 
 %%
 
@@ -315,15 +314,17 @@ function [x,y] = gps2xyref(lat, lon, relLat, relLon)
 end
 
 %length(filenames)
-function plotDepthBuckets(varArr,depthArr,dist,depthExplorationArr,numDives,varname, units)
-    
+function [varGroupedByDepth,avgVar] = getDepthBuckets(varArr,depthArr,depthExplorationArr,numDives)
+    % across is the dive type
+    % down is the depth chunking
+
     delta = 0.1;
     varGroupedByDepth = cell(length(depthExplorationArr),numDives);
     
     avgVar = zeros(length(depthExplorationArr),numDives);
     for i=1:length(depthExplorationArr)
         %figure; 
-        hold on;
+        %hold on;
         for j = 1:numDives
             depthArrMask = depthArr(j,:) > depthExplorationArr(i)-delta & depthArr(j,:) <  depthExplorationArr(i) + delta;
             varGroupedByDepth{i,j} = varArr(j,depthArrMask);
@@ -337,6 +338,9 @@ function plotDepthBuckets(varArr,depthArr,dist,depthExplorationArr,numDives,varn
         % title(varname + " vs distance to shore"); subtitle(sprintf("Depth %f",depthExplorationArr(i)))
     end
     
+end
+
+function plotDepthBuckets(varGroupedByDepth,avgVar,depthExplorationArr,dist,numDives,varname, units)
     figure
     hold on;
     for i = 1:length(depthExplorationArr)
@@ -352,7 +356,7 @@ function plotDepthBuckets(varArr,depthArr,dist,depthExplorationArr,numDives,varn
     ylabel("Depth Bucket")
     zlabel("Average " + varname +" in Bucket [" + units + "]")
     % "\color{255 255 255}"+varname + "Grouped by depth and distance from structure"
-    title(varname + "Grouped by depth and distance from structure","Color","white")
+    title(varname + " grouped by depth and distance from structure","Color","white")
     colormap("spring")
     set(gca,'color',[0 0 0])
     set(gca, 'XColor', 'white')
