@@ -260,19 +260,40 @@ plotDepthBuckets(turbDepthBucket,avgTurbBucket,depthExplorationArr,dist,numDives
 [salnDepthBucket,avgSalnBucket] = getDepthBuckets(salinityArr,depthArr,depthExplorationArr,numDives);
 plotDepthBuckets(salnDepthBucket,avgSalnBucket,depthExplorationArr,dist,numDives,"Salinity", "PPM")
 
-[phDepthBucket,phSalnBucket] = getDepthBuckets(phArr,depthArr,depthExplorationArr,numDives);
-plotDepthBuckets(phDepthBucket,phSalnBucket,depthExplorationArr,dist,numDives,"PH", "")
+[phDepthBucket,avgPhBucket] = getDepthBuckets(phArr,depthArr,depthExplorationArr,numDives);
+plotDepthBuckets(phDepthBucket,avgPhBucket,depthExplorationArr,dist,numDives,"PH", "")
 %% Now I want to fit a curve to the data vs distance from structures
+a = [1,2,3,4]';
+b = [4,5,6,7]';
+f = fit(a,b,'poly2')
+figure;
+scatter(a,b)
+hold on;
+plot(a,f(a))
 
+%%
+close all,clc
 
+% fitting distance from shore and value for each depth. 
+[turbDistFromShoreFit, turbGof] = plotFitBuckets(avgTurbBucket,dist,depthExplorationArr,"Turbidity","NTU","poly1");
+[tempDistFromShoreFit, tempGof] = plotFitBuckets(avgTmpBucket,dist,depthExplorationArr,"Tempearture","C","poly1");
+[salnDistFromShoreFit, salnGof] = plotFitBuckets(avgSalnBucket,dist,depthExplorationArr,"Salinity","PPM","poly1");
+[phDistFromShoreFit,phGof] = plotFitBuckets(avgPhBucket,dist,depthExplorationArr,"PH","","poly1");
+
+%% Now that we have all the fits, we can see if there are any trends in the fit slope
+
+plotSlopes(depthExplorationArr,turbDistFromShoreFit,turbGof, "Turbidity","NTU")
+plotSlopes(depthExplorationArr,tempDistFromShoreFit,tempGof, "Temperature","C")
+plotSlopes(depthExplorationArr,phDistFromShoreFit,phGof, "PH","")
+plotSlopes(depthExplorationArr,salnDistFromShoreFit,salnGof, "Salinity","PPM")
 
 %%
 
 for i = 1:length(filenames)
     figure
     tiledlayout(2,2)
-   
-    
+  
+
     nexttile
     scatter(depthArr(i,:),tempArr(i,:),10,1:length(tempArr(i,:)))
     title("Temperature")
@@ -305,6 +326,85 @@ end
 
 
 %%
+
+function plotSlopes(depthExplorationArr,distFromShoreFit,Gof, varname,units)
+
+    figure
+    hold on;
+    for i=1:length(depthExplorationArr)
+        scatter(depthExplorationArr(i),distFromShoreFit{i}.p1,"filled")
+        errorbar(depthExplorationArr(i),distFromShoreFit{i}.p1,Gof{i}.rmse)
+    end
+    title(varname + " Fit Slope by Depth")
+    xlabel("Depth [m]")
+    ylabel("Slope of Linear Fit w RMSE [" + units + "/m]" )
+
+end
+
+function errorbar3(x, y, z, errX, errY, errZ, varargin)
+% ERRORBAR3 Plots 3D error bars
+%   errorbar3(x, y, z, errX, errY, errZ)
+%   x, y, z: Vectors of data points
+%   errX, errY, errZ: Vectors of errors in each direction
+%   Additional arguments (varargin) are passed to plot3 (for marker style etc.)
+
+    hold on
+
+    % Main data points
+    plot3(x, y, z, 'o', varargin{:});
+
+    % X error bars
+    for i = 1:length(x)
+        line([x(i)-errX(i), x(i)+errX(i)], [y(i), y(i)], [z(i), z(i)], 'Color', 'k');
+    end
+
+    % Y error bars
+    for i = 1:length(y)
+        line([x(i), x(i)], [y(i)-errY(i), y(i)+errY(i)], [z(i), z(i)], 'Color', 'k');
+    end
+
+    % Z error bars
+    for i = 1:length(z)
+        line([x(i), x(i)], [y(i), y(i)], [z(i)-errZ(i), z(i)+errZ(i)], 'Color', 'k');
+    end
+
+    hold off
+end
+
+function [fitArr,gofArr] = plotFitBuckets(avgBucket,dist,depthExplorationArr,varname,units,fittype)
+    fitDist = min(dist):0.01:max(dist);
+    fitArr = cell(1,length(depthExplorationArr));
+    gofArr = cell(1,length(depthExplorationArr));
+    figure("color","black"); 
+    hold on;
+    view([-60, 17])
+
+    for i = 1:length(avgBucket)
+        b = avgBucket(i,:);
+        nonzeroMask = b>0;
+        [f,g] = fit(dist(nonzeroMask)',b(nonzeroMask)',fittype);
+        fitArr{i} = f;
+        gofArr{i} = g;
+        scatter3(dist,depthExplorationArr(i)+0.*dist,b,20,depthExplorationArr(i)+0.*dist,'filled')
+        plot3(fitDist,depthExplorationArr(i)+0.*fitDist,f(fitDist))
+
+       
+    end
+    title(varname + " Fit grouped by depth and distance from structure","Color","white")
+    xlabel("Distance from Structure [m]")
+    ylabel("Depth Bucket")
+    zlabel("Average " + varname +" in Bucket [" + units + "]")
+   
+    colormap("spring")
+    set(gca,'color',[0 0 0])
+    set(gca, 'XColor', 'white')
+    set(gca, 'YColor', 'white')
+    set(gca, 'ZColor', 'white')
+    set(gca, 'GridLineWidth', 1)
+    set(gcf,'Color','black')
+    view([-24 5])
+end
+
 
 function [x,y] = gps2xyref(lat, lon, relLat, relLon)
     earthRadius = 6.371e6; % Meters
