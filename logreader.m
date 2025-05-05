@@ -47,8 +47,8 @@ end
 fclose(fid);
 
 %%
-dataTitle = "pier 2, log 2";
-datraw = readtable("danapoint/pier2_deeper/log6.csv");%bigkayaktrip1/log15.csv");
+dataTitle = "Long waiting";
+datraw = readtable("danapoint/waitingforgps/log5.csv");%bigkayaktrip1/log15.csv");
 
 dat = table2array(datraw);
 
@@ -67,22 +67,11 @@ turbidity = -376*turbraw+1111;
 salinity = 2.02e-4*exp(2.08*salinityraw);
 temperature = 9.14*temperatureraw-3.28;
 
-
-% figure;
-% plot(time,presraw)
-% hold on;
-% plot(time,turbraw)
-% plot(time,phraw)
-% plot(time,temperatureraw)
-% plot(time,salinityraw)
-% legend("pressure","turbidity","PH","temperature","salinity")
-% title("Sensor Voltages")
-
-tiledlayout(2,2)
 figure
+tiledlayout(2,2)
 
 nexttile
-scatter(depth,temperature,10,1:length(turbidity))
+scatter(depth,temperature,10,1:length(temperature))
 title("Temperature")
 xlabel("depth [m]")
 ylabel("Temperature [C]")
@@ -94,7 +83,7 @@ xlabel("depth [m]")
 ylabel("Turbidity [NTU]")
 nexttile
 
-scatter(depth, salinity,10,1:length(turbidity))
+scatter(depth, salinity,10,1:length(salinity))
 
 title("Salinity")
 xlabel("depth [m]")
@@ -107,7 +96,22 @@ title("PH")
 xlabel("depth [m]")
 ylabel("PH")
 
-sgtitle(dataTitle)
+sgtitle("Stationary collection of Data for understanding of Variance")
+
+%% Stats
+z = 1.96;
+aTmp = mean(temperature);
+aDepth = mean(depth);
+aTurb=  mean(turbidity);
+aSaln =  mean(salinity);
+aPh = mean(ph);
+ciTmp = z*std(temperature)/sqrt(length(temperature));
+ciDepth = z*std(temperature)/sqrt(length(temperature));
+ciTurb = z*std(temperature)/sqrt(length(temperature));
+ciSaln = z*std(temperature)/sqrt(length(temperature));
+ciPh = z*std(temperature)/sqrt(length(temperature));
+
+
 
 %%
 close all
@@ -263,15 +267,7 @@ plotDepthBuckets(salnDepthBucket,avgSalnBucket,depthExplorationArr,dist,numDives
 [phDepthBucket,avgPhBucket] = getDepthBuckets(phArr,depthArr,depthExplorationArr,numDives);
 plotDepthBuckets(phDepthBucket,avgPhBucket,depthExplorationArr,dist,numDives,"PH", "")
 %% Now I want to fit a curve to the data vs distance from structures
-a = [1,2,3,4]';
-b = [4,5,6,7]';
-f = fit(a,b,'poly2')
-figure;
-scatter(a,b)
-hold on;
-plot(a,f(a))
 
-%%
 close all,clc
 
 % fitting distance from shore and value for each depth. 
@@ -332,13 +328,17 @@ function plotSlopes(depthExplorationArr,distFromShoreFit,Gof, varname,units)
     figure
     hold on;
     for i=1:length(depthExplorationArr)
+        yyaxis left
         scatter(depthExplorationArr(i),distFromShoreFit{i}.p1,"filled")
-        errorbar(depthExplorationArr(i),distFromShoreFit{i}.p1,Gof{i}.rmse)
+        yyaxis right
+        scatter(depthExplorationArr(i),Gof{i}.rmse,"filled")
     end
     title(varname + " Fit Slope by Depth")
     xlabel("Depth [m]")
+    yyaxis left
     ylabel("Slope of Linear Fit w RMSE [" + units + "/m]" )
-
+    yyaxis right
+    ylabel("RMSE of slope")
 end
 
 function errorbar3(x, y, z, errX, errY, errZ, varargin)
